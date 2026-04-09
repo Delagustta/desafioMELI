@@ -5,7 +5,7 @@ import com.hackerrank.sample.service.ModelService;
 import io.swagger.v3.oas.annotations.Hidden;
 import java.util.List;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,9 +18,9 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 @RestController
 @Hidden
+@RequiredArgsConstructor
 public class ModelController {
-    @Autowired
-    private ModelService modelService;
+    private final ModelService modelService;
 
     @GetMapping("/")
     @ResponseBody
