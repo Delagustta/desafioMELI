@@ -1,0 +1,44 @@
+[
+  {
+    "id": 101,
+    "name": "Smartphone X",
+    "imageUrl": "https://images.example.com/smartphone-x.jpg",
+    "description": "Smartphone with AMOLED display and 5G connectivity.",
+    "price": 2499.90,
+    "rating": 4.7,
+    "specifications": {
+      "screen": "6.1 inch AMOLED",
+      "storage": "256 GB",
+      "battery": "4200 mAh",
+      "ram": "8 GB"
+    }
+  },
+  {
+    "id": 102,
+    "name": "Notebook Pro 14",
+    "imageUrl": "https://images.example.com/notebook-pro-14.jpg",
+    "description": "Lightweight notebook for daily productivity and coding.",
+    "price": 5899.00,
+    "rating": 4.6,
+    "specifications": {
+      "screen": "14 inch IPS",
+      "cpu": "Intel Core i7",
+      "ram": "16 GB",
+      "storage": "512 GB SSD"
+    }
+  },
+  {
+    "id": 103,
+    "name": "Wireless Headphones Z",
+    "imageUrl": "https://images.example.com/headphones-z.jpg",
+    "description": "Noise-canceling over-ear wireless headphones.",
+    "price": 899.50,
+    "rating": 4.5,
+    "specifications": {
+      "type": "Over-ear",
+      "connectivity": "Bluetooth 5.3",
+      "batteryLife": "35 hours",
+      "noiseCanceling": "Active"
+    }
+  }
+]
