@@ -1,6 +1,7 @@
 package com.hackerrank.sample.controller;
 
 import com.hackerrank.sample.dto.CompareProductsRequest;
+import com.hackerrank.sample.dto.ApiErrorResponse;
 import com.hackerrank.sample.dto.ProductResponse;
 import com.hackerrank.sample.service.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -46,7 +47,16 @@ public class ProductController {
             description = "Product found",
             content = @Content(schema = @Schema(implementation = ProductResponse.class))
     )
-    @ApiResponse(responseCode = "404", description = "Product not found")
+    @ApiResponse(
+            responseCode = "404",
+            description = "Product not found",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))
+    )
+    @ApiResponse(
+            responseCode = "500",
+            description = "Unexpected server error",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))
+    )
     public ProductResponse getProductById(@PathVariable Long id) {
         return productService.getProductById(id);
     }
@@ -59,8 +69,21 @@ public class ProductController {
             description = "Products returned in the same input order",
             content = @Content(array = @ArraySchema(schema = @Schema(implementation = ProductResponse.class)))
     )
-    @ApiResponse(responseCode = "400", description = "Invalid request payload")
-    @ApiResponse(responseCode = "404", description = "At least one product id was not found")
+    @ApiResponse(
+            responseCode = "400",
+            description = "Invalid request payload",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))
+    )
+    @ApiResponse(
+            responseCode = "404",
+            description = "At least one product id was not found",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))
+    )
+    @ApiResponse(
+            responseCode = "500",
+            description = "Unexpected server error",
+            content = @Content(schema = @Schema(implementation = ApiErrorResponse.class))
+    )
     public List<ProductResponse> compareProducts(@RequestBody @Valid CompareProductsRequest request) {
         return productService.compareProducts(request.ids());
     }
