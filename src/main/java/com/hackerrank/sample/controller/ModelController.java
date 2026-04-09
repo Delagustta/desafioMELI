@@ -2,6 +2,7 @@ package com.hackerrank.sample.controller;
 
 import com.hackerrank.sample.model.Model;
 import com.hackerrank.sample.service.ModelService;
+import io.swagger.v3.oas.annotations.Hidden;
 import java.util.List;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 @RestController
+@Hidden
 public class ModelController {
     @Autowired
     private ModelService modelService;
