@@ -61,6 +61,11 @@ H2 console:
 
 - `http://localhost:8080/h2-console`
 
+Important:
+
+- H2 Console may open with a different default JDBC URL.
+- Use `jdbc:h2:mem:item-comparison-db` in the JDBC URL field to connect to this project database.
+
 ## Seed Data
 
 Products are loaded at startup from:
