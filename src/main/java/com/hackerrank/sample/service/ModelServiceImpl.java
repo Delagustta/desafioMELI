@@ -6,13 +6,13 @@ import com.hackerrank.sample.model.Model;
 import com.hackerrank.sample.repository.ModelRepository;
 import java.util.List;
 import java.util.Optional;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 @Service("modelService")
+@RequiredArgsConstructor
 public class ModelServiceImpl implements ModelService {
-    @Autowired
-    private ModelRepository modelRepository;
+    private final ModelRepository modelRepository;
 
     @Override
     public void deleteAllModels() {

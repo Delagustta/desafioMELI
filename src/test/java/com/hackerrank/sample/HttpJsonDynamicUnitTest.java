@@ -22,25 +22,23 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static java.util.stream.Collectors.toList;
 import java.util.stream.Stream;
 import javafx.util.Pair;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.Stopwatch;
-import org.junit.rules.TestWatcher;
-import org.junit.runner.Description;
-import org.junit.runner.RunWith;
-import org.junit.runners.model.Statement;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.extension.TestWatcher;
+import org.junit.jupiter.api.extension.ExtensionContext;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.test.context.web.WebAppConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -50,9 +48,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppContextSetup;
 import org.springframework.web.context.WebApplicationContext;
 
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = Application.class)
-@WebAppConfiguration
+@RequiredArgsConstructor
 public class HttpJsonDynamicUnitTest {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -61,23 +59,19 @@ public class HttpJsonDynamicUnitTest {
 
     private static HttpMessageConverter mappingJackson2HttpMessageConverter;
 
-    @Autowired
-    private WebApplicationContext webApplicationContext;
+    private final WebApplicationContext webApplicationContext;
     private MockMvc mockMvc;
 
-    @Before
-    public void getContext() {
+    @BeforeEach
+    void setupMockMvc() {
         mockMvc = webAppContextSetup(webApplicationContext).build();
         assertNotNull(mockMvc);
-    }
 
-    @Autowired
-    public void setConverters(HttpMessageConverter<?>[] converters) {
-        mappingJackson2HttpMessageConverter = Stream.of(converters)
-                .filter(hmc -> hmc instanceof MappingJackson2HttpMessageConverter)
+        RequestMappingHandlerAdapter adapter = webApplicationContext.getBean(RequestMappingHandlerAdapter.class);
+        mappingJackson2HttpMessageConverter = adapter.getMessageConverters().stream()
+                .filter(MappingJackson2HttpMessageConverter.class::isInstance)
                 .findAny()
                 .orElse(null);
-
         assertNotNull(mappingJackson2HttpMessageConverter);
     }
 
@@ -86,39 +80,22 @@ public class HttpJsonDynamicUnitTest {
     Map<String, Long> executionTime = new HashMap<>();
     Map<String, Pair<Pair<String, String>, Pair<String, String>>> testFailures = new HashMap<>();
 
-    @Rule
-    public Stopwatch stopwatch = new Stopwatch() {};
-
-    @Rule
-    public TestWatcher watchman = new TestWatcher() {
+    @RegisterExtension
+    TestWatcher reportWatcher = new TestWatcher() {
         @Override
-        public Statement apply(Statement base, Description description) {
-            return super.apply(base, description);
-        }
-
-        @Override
-        protected void starting(Description description) {
-            super.starting(description);
-        }
-
-        @Override
-        protected void succeeded(Description description) {
+        public void testSuccessful(ExtensionContext context) {
             generateReportForProperExecution();
         }
 
         @Override
-        protected void failed(Throwable e, Description description) {
+        public void testFailed(ExtensionContext context, Throwable cause) {
             generateReportForRuntimeFailureExecution();
-        }
-
-        @Override
-        protected void finished(Description description) {
-            super.finished(description);
         }
     };
 
     @Test
-    public void dynamicTests() {
+    void dynamicTests() {
+        final long testMethodStartNanos = System.nanoTime();
         try {
             httpJsonFiles = Files.list(Paths.get("src/test/resources/testcases"))
                     .filter(Files::isRegularFile)
@@ -340,7 +317,9 @@ public class HttpJsonDynamicUnitTest {
                         });
                     }
 
-                    executionTime.put(filename, stopwatch.runtime(TimeUnit.MILLISECONDS));
+                    executionTime.put(
+                            filename,
+                            TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - testMethodStartNanos));
                 });
             }
         }
