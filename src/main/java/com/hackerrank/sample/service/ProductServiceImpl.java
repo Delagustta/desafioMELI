@@ -52,15 +52,17 @@ public class ProductServiceImpl implements ProductService {
             throw new IllegalArgumentException("ids must not be null or empty");
         }
 
-        Map<Long, Product> foundById = productRepository.findAllById(ids)
+        List<Long> distinctIds = ids.stream().distinct().toList();
+
+        Map<Long, Product> foundById = productRepository.findAllById(distinctIds)
                 .stream()
                 .collect(Collectors.toMap(
                         Product::getId,
                         Function.identity()
                 ));
 
-        if (foundById.size() != ids.size()) {
-            List<Long> missingIds = ids.stream()
+        if (foundById.size() != distinctIds.size()) {
+            List<Long> missingIds = distinctIds.stream()
                     .filter(id -> !foundById.containsKey(id))
                     .toList();
 

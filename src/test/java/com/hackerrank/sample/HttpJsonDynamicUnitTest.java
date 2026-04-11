@@ -3,50 +3,41 @@ package com.hackerrank.sample;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import static java.util.stream.Collectors.toList;
-import java.util.stream.Stream;
 import javafx.util.Pair;
 import lombok.RequiredArgsConstructor;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.extension.TestWatcher;
-import org.junit.jupiter.api.extension.ExtensionContext;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
-import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppContextSetup;
 import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
+
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static java.util.stream.Collectors.toList;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.setup.MockMvcBuilders.webAppContextSetup;
 
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = Application.class)
@@ -57,8 +48,6 @@ public class HttpJsonDynamicUnitTest {
     private static final MediaType CONTENT_TYPE_JSON = MediaType.APPLICATION_JSON_UTF8;
     private static final MediaType CONTENT_TYPE_TEXT = MediaType.TEXT_PLAIN;
 
-    private static HttpMessageConverter mappingJackson2HttpMessageConverter;
-
     private final WebApplicationContext webApplicationContext;
     private MockMvc mockMvc;
 
@@ -68,7 +57,7 @@ public class HttpJsonDynamicUnitTest {
         assertNotNull(mockMvc);
 
         RequestMappingHandlerAdapter adapter = webApplicationContext.getBean(RequestMappingHandlerAdapter.class);
-        mappingJackson2HttpMessageConverter = adapter.getMessageConverters().stream()
+        HttpMessageConverter<?> mappingJackson2HttpMessageConverter = adapter.getMessageConverters().stream()
                 .filter(MappingJackson2HttpMessageConverter.class::isInstance)
                 .findAny()
                 .orElse(null);
@@ -76,7 +65,7 @@ public class HttpJsonDynamicUnitTest {
     }
 
     List<String> httpJsonFiles = new ArrayList<>();
-    Map<String, String> httpJsonAndTestname = new HashMap<>();
+    Map<String, String> httpJsonAndTestName = new HashMap<>();
     Map<String, Long> executionTime = new HashMap<>();
     Map<String, Pair<Pair<String, String>, Pair<String, String>>> testFailures = new HashMap<>();
 
@@ -113,11 +102,11 @@ public class HttpJsonDynamicUnitTest {
             try (InputStream inputStream = resource.getInputStream()) {
                 testnames = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))
                         .lines()
-                        .collect(toList());
+                        .toList();
             } catch (IOException ex) {
-                System.out.println(String.join("\n", Stream.of(ex.getStackTrace())
-                        .map(trace -> trace.toString())
-                        .collect(toList())));
+                System.out.println(Stream.of(ex.getStackTrace())
+                        .map(StackTraceElement::toString)
+                        .collect(Collectors.joining("\n")));
 
                 throw new Error(ex.toString());
             }
@@ -127,7 +116,7 @@ public class HttpJsonDynamicUnitTest {
 
                 for (int i = 0; i < testnames.size(); i++) {
                     String[] testname = testnames.get(i).split(": ");
-                    httpJsonAndTestname.put(testname[0], testname[1]);
+                    httpJsonAndTestName.put(testname[0], testname[1]);
                 }
 
                 AtomicInteger processedRequestCount = new AtomicInteger(1);
@@ -137,18 +126,17 @@ public class HttpJsonDynamicUnitTest {
                         return;
                     }
 
-                    final List<String> jsonStrings = new ArrayList<>();
+                    final List<String> jsonStrings;
 
                     ClassPathResource jsonResource = new ClassPathResource("testcases/" + filename);
                     try (InputStream inputStream = jsonResource.getInputStream()) {
-                        new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))
+                        jsonStrings = new ArrayList<>(new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))
                                 .lines()
-                                .collect(toList())
-                                .forEach(jsonString -> jsonStrings.add(jsonString));
+                                .toList());
                     } catch (IOException ex) {
-                        System.out.println(String.join("\n", Stream.of(ex.getStackTrace())
-                        .map(trace -> trace.toString())
-                        .collect(toList())));
+                        System.out.println(Stream.of(ex.getStackTrace())
+                                .map(StackTraceElement::toString)
+                                .collect(Collectors.joining("\n")));
 
                         throw new Error(ex.toString());
                     }
@@ -183,70 +171,68 @@ public class HttpJsonDynamicUnitTest {
                                 processedRequestCount.set(processedRequestCount.incrementAndGet());
 
                                 switch (method) {
-                                    case "POST":
-                                        {
-                                            MediaType contentType = MediaType.ALL;
-                                            String type = request.get("headers").get("Content-Type").asText();
+                                    case "POST": {
+                                        MediaType contentType = MediaType.ALL;
+                                        String type = request.get("headers").get("Content-Type").asText();
 
-                                            if (type.equals("application/json")) {
-                                                contentType = CONTENT_TYPE_JSON;
-                                            } else if (type.equals("text/plain")) {
-                                                contentType = CONTENT_TYPE_TEXT;
-                                            }
-
-                                            if (!contentType.equals(MediaType.ALL)) {
-                                                try {
-                                                    ResultActions resultActions = mockMvc.perform(post(url)
-                                                            .content(body)
-                                                            .contentType(CONTENT_TYPE_JSON));
-                                                    MockHttpServletResponse mockResponse = resultActions.andReturn()
-                                                            .getResponse();
-
-                                                    validateStatusCode(filename, method + " " + url,
-                                                            statusCode, String.valueOf(mockResponse.getStatus()));
-                                                } catch (Exception ex) {
-                                                    System.out.println(String.join("\n", Stream.of(ex.getStackTrace())
-                                                    .map(trace -> trace.toString())
-                                                    .collect(toList())));
-
-                                                    throw new Error(ex.toString());
-                                                }
-                                            }
-
-                                            break;
+                                        if (type.equals("application/json")) {
+                                            contentType = CONTENT_TYPE_JSON;
+                                        } else if (type.equals("text/plain")) {
+                                            contentType = CONTENT_TYPE_TEXT;
                                         }
-                                    case "PUT":
-                                        {
-                                            MediaType contentType = MediaType.ALL;
-                                            String type = request.get("headers").get("Content-Type").asText();
 
-                                            if (type.equals("application/json")) {
-                                                contentType = CONTENT_TYPE_JSON;
-                                            } else if (type.equals("text/plain")) {
-                                                contentType = CONTENT_TYPE_TEXT;
+                                        if (!contentType.equals(MediaType.ALL)) {
+                                            try {
+                                                ResultActions resultActions = mockMvc.perform(post(url)
+                                                        .content(body)
+                                                        .contentType(CONTENT_TYPE_JSON));
+                                                MockHttpServletResponse mockResponse = resultActions.andReturn()
+                                                        .getResponse();
+
+                                                validateStatusCode(filename, method + " " + url,
+                                                        statusCode, String.valueOf(mockResponse.getStatus()));
+                                            } catch (Exception ex) {
+                                                System.out.println(Stream.of(ex.getStackTrace())
+                                                        .map(StackTraceElement::toString)
+                                                        .collect(Collectors.joining("\n")));
+
+                                                throw new Error(ex.toString());
                                             }
-
-                                            if (!contentType.equals(MediaType.ALL)) {
-                                                try {
-                                                    ResultActions resultActions = mockMvc.perform(put(url)
-                                                            .content(body)
-                                                            .contentType(CONTENT_TYPE_JSON));
-                                                    MockHttpServletResponse mockResponse = resultActions.andReturn()
-                                                            .getResponse();
-
-                                                    validateStatusCode(filename, method + " " + url,
-                                                            statusCode, String.valueOf(mockResponse.getStatus()));
-                                                } catch (Exception ex) {
-                                                    System.out.println(String.join("\n", Stream.of(ex.getStackTrace())
-                                                    .map(trace -> trace.toString())
-                                                    .collect(toList())));
-
-                                                    throw new Error(ex.toString());
-                                                }
-                                            }
-
-                                            break;
                                         }
+
+                                        break;
+                                    }
+                                    case "PUT": {
+                                        MediaType contentType = MediaType.ALL;
+                                        String type = request.get("headers").get("Content-Type").asText();
+
+                                        if (type.equals("application/json")) {
+                                            contentType = CONTENT_TYPE_JSON;
+                                        } else if (type.equals("text/plain")) {
+                                            contentType = CONTENT_TYPE_TEXT;
+                                        }
+
+                                        if (!contentType.equals(MediaType.ALL)) {
+                                            try {
+                                                ResultActions resultActions = mockMvc.perform(put(url)
+                                                        .content(body)
+                                                        .contentType(CONTENT_TYPE_JSON));
+                                                MockHttpServletResponse mockResponse = resultActions.andReturn()
+                                                        .getResponse();
+
+                                                validateStatusCode(filename, method + " " + url,
+                                                        statusCode, String.valueOf(mockResponse.getStatus()));
+                                            } catch (Exception ex) {
+                                                System.out.println(Stream.of(ex.getStackTrace())
+                                                        .map(StackTraceElement::toString)
+                                                        .collect(Collectors.joining("\n")));
+
+                                                throw new Error(ex.toString());
+                                            }
+                                        }
+
+                                        break;
+                                    }
                                     case "DELETE":
                                         try {
                                             ResultActions resultActions = mockMvc.perform(delete(url));
@@ -256,9 +242,9 @@ public class HttpJsonDynamicUnitTest {
                                             validateStatusCode(filename, method + " " + url,
                                                     statusCode, String.valueOf(mockResponse.getStatus()));
                                         } catch (Exception ex) {
-                                            System.out.println(String.join("\n", Stream.of(ex.getStackTrace())
-                                            .map(trace -> trace.toString())
-                                            .collect(toList())));
+                                            System.out.println(Stream.of(ex.getStackTrace())
+                                                    .map(StackTraceElement::toString)
+                                                    .collect(Collectors.joining("\n")));
 
                                             throw new Error(ex.toString());
                                         }
@@ -275,8 +261,9 @@ public class HttpJsonDynamicUnitTest {
                                                 JsonNode expectedType = response.get("headers").get("Content-Type");
                                                 if (expectedType != null) {
                                                     if (mockResponse.containsHeader("content-type")) {
+                                                        assertNotNull(mockResponse.getContentType());
                                                         validateContentType(filename, method + " " + url,
-                                                            expectedType.asText(), mockResponse.getContentType());
+                                                                expectedType.asText(), mockResponse.getContentType());
                                                     }
 
                                                     if (statusCode.equals("200")) {
@@ -296,9 +283,9 @@ public class HttpJsonDynamicUnitTest {
                                                 }
                                             }
                                         } catch (Exception ex) {
-                                            System.out.println(String.join("\n", Stream.of(ex.getStackTrace())
-                                            .map(trace -> trace.toString())
-                                            .collect(toList())));
+                                            System.out.println(Stream.of(ex.getStackTrace())
+                                                    .map(StackTraceElement::toString)
+                                                    .collect(Collectors.joining("\n")));
 
                                             throw new Error(ex.toString());
                                         }
@@ -308,9 +295,9 @@ public class HttpJsonDynamicUnitTest {
                                         break;
                                 }
                             } catch (IOException ex) {
-                                System.out.println(String.join("\n", Stream.of(ex.getStackTrace())
-                                .map(trace -> trace.toString())
-                                .collect(toList())));
+                                System.out.println(Stream.of(ex.getStackTrace())
+                                        .map(StackTraceElement::toString)
+                                        .collect(Collectors.joining("\n")));
 
                                 throw new Error(ex.toString());
                             }
@@ -361,10 +348,12 @@ public class HttpJsonDynamicUnitTest {
     private boolean validateJsonResponse(String filename, String testcase, JsonNode expected, JsonNode found) {
         try {
             List<JsonNode> expectedResponseJsonList = OBJECT_MAPPER.readValue(expected.toString(),
-                        new TypeReference<List<JsonNode>>(){});
+                    new TypeReference<List<JsonNode>>() {
+                    });
 
             List<JsonNode> responseBodyJsonList = OBJECT_MAPPER.readValue(found.toString(),
-                        new TypeReference<List<JsonNode>>(){});
+                    new TypeReference<List<JsonNode>>() {
+                    });
 
             if (expectedResponseJsonList.size() != responseBodyJsonList.size()) {
                 String reason = "Response Json array size does not match with the expected array size";
@@ -413,7 +402,7 @@ public class HttpJsonDynamicUnitTest {
                 .stream()
                 .sorted()
                 .map(filename -> executionTime.get(filename))
-                .collect(toList());
+                .toList();
 
         for (int i = 1; i < executionTimeInSeconds.size(); i++) {
             executionTime.put(httpJsonFiles.get(i),
@@ -436,15 +425,15 @@ public class HttpJsonDynamicUnitTest {
 
         try (BufferedWriter writer = Files.newBufferedWriter(Paths.get("target/customReports/result.txt"))) {
             writer.write(Colors.WHITE_BOLD +
-                " _    _       _ _     _______        _     _____                       _   \n" +
-                "| |  | |     (_) |   |__   __|      | |   |  __ \\                     | |  \n" +
-                "| |  | |_ __  _| |_     | | ___  ___| |_  | |__) |___ _ __   ___  _ __| |_ \n" +
-                "| |  | | '_ \\| | __|    | |/ _ \\/ __| __| |  _  // _ \\ '_ \\ / _ \\| '__| __|\n" +
-                "| |__| | | | | | |_     | |  __/\\__ \\ |_  | | \\ \\  __/ |_) | (_) | |  | |_ \n" +
-                " \\____/|_| |_|_|\\__|    |_|\\___||___/\\__| |_|  \\_\\___| .__/ \\___/|_|   \\__|\n" +
-                "                                                     | |                   \n" +
-                "                                                     |_|                   " +
-                Colors.RESET);
+                    " _    _       _ _     _______        _     _____                       _   \n" +
+                    "| |  | |     (_) |   |__   __|      | |   |  __ \\                     | |  \n" +
+                    "| |  | |_ __  _| |_     | | ___  ___| |_  | |__) |___ _ __   ___  _ __| |_ \n" +
+                    "| |  | | '_ \\| | __|    | |/ _ \\/ __| __| |  _  // _ \\ '_ \\ / _ \\| '__| __|\n" +
+                    "| |__| | | | | | |_     | |  __/\\__ \\ |_  | | \\ \\  __/ |_) | (_) | |  | |_ \n" +
+                    " \\____/|_| |_|_|\\__|    |_|\\___||___/\\__| |_|  \\_\\___| .__/ \\___/|_|   \\__|\n" +
+                    "                                                     | |                   \n" +
+                    "                                                     |_|                   " +
+                    Colors.RESET);
             writer.newLine();
 
             writer.write(ANSI_SUMMARY);
@@ -469,25 +458,25 @@ public class HttpJsonDynamicUnitTest {
             httpJsonFiles.forEach(filename -> {
                 if (failedTestFiles.contains(filename)) {
                     try {
-                        writer.write(Colors.WHITE_BOLD + filename +": " + Colors.RESET +
+                        writer.write(Colors.WHITE_BOLD + filename + ": " + Colors.RESET +
                                 ANSI_FAILURE + " (" + executionTime.get(filename) / 1000.0f + "s)");
                         writer.newLine();
                     } catch (IOException ex) {
-                        System.out.println(String.join("\n", Stream.of(ex.getStackTrace())
-                        .map(trace -> trace.toString())
-                        .collect(toList())));
+                        System.out.println(Stream.of(ex.getStackTrace())
+                                .map(StackTraceElement::toString)
+                                .collect(Collectors.joining("\n")));
 
                         throw new Error(ex.toString());
                     }
                 } else {
                     try {
-                        writer.write(Colors.WHITE_BOLD + filename +": " + Colors.RESET +
+                        writer.write(Colors.WHITE_BOLD + filename + ": " + Colors.RESET +
                                 ANSI_SUCCESS + " (" + executionTime.get(filename) / 1000.0f + "s)");
                         writer.newLine();
                     } catch (IOException ex) {
-                        System.out.println(String.join("\n", Stream.of(ex.getStackTrace())
-                        .map(trace -> trace.toString())
-                        .collect(toList())));
+                        System.out.println(Stream.of(ex.getStackTrace())
+                                .map(StackTraceElement::toString)
+                                .collect(Collectors.joining("\n")));
 
                         throw new Error(ex.toString());
                     }
@@ -511,32 +500,32 @@ public class HttpJsonDynamicUnitTest {
 
                             fileFailureReason.put(filename, reason);
 
-                    try {
-                        writer.write(String.format(ANSI_REPORT, filename));
-                        writer.newLine();
-                        writer.write(Colors.WHITE_BOLD + "[Test Case]" + Colors.RESET + " " + testStep);
-                        writer.newLine();
-                        writer.write(Colors.WHITE_BOLD + "[   Reason]" + Colors.RESET + " " + Colors.RED_BOLD + reason +
-                                Colors.RESET);
-                        writer.newLine();
-                        writer.write(Colors.WHITE_BOLD + "[ Expected]" + Colors.RESET + " " + expected);
-                        writer.newLine();
-                        writer.write(Colors.WHITE_BOLD + "[    Found]" + Colors.RESET + " " + found);
-                        writer.newLine();
-                        writer.newLine();
-                    } catch (IOException ex) {
-                        System.out.println(String.join("\n", Stream.of(ex.getStackTrace())
-                        .map(trace -> trace.toString())
-                        .collect(toList())));
+                            try {
+                                writer.write(String.format(ANSI_REPORT, filename));
+                                writer.newLine();
+                                writer.write(Colors.WHITE_BOLD + "[Test Case]" + Colors.RESET + " " + testStep);
+                                writer.newLine();
+                                writer.write(Colors.WHITE_BOLD + "[   Reason]" + Colors.RESET + " " + Colors.RED_BOLD + reason +
+                                        Colors.RESET);
+                                writer.newLine();
+                                writer.write(Colors.WHITE_BOLD + "[ Expected]" + Colors.RESET + " " + expected);
+                                writer.newLine();
+                                writer.write(Colors.WHITE_BOLD + "[    Found]" + Colors.RESET + " " + found);
+                                writer.newLine();
+                                writer.newLine();
+                            } catch (IOException ex) {
+                                System.out.println(Stream.of(ex.getStackTrace())
+                                        .map(StackTraceElement::toString)
+                                        .collect(Collectors.joining("\n")));
 
-                        throw new Error(ex.toString());
-                    }
-                });
+                                throw new Error(ex.toString());
+                            }
+                        });
             }
         } catch (IOException ex) {
-            System.out.println(String.join("\n", Stream.of(ex.getStackTrace())
-            .map(trace -> trace.toString())
-            .collect(toList())));
+            System.out.println(Stream.of(ex.getStackTrace())
+                    .map(StackTraceElement::toString)
+                    .collect(Collectors.joining("\n")));
 
             throw new Error(ex.toString());
         }
@@ -545,7 +534,7 @@ public class HttpJsonDynamicUnitTest {
             writer.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
             writer.write(String.format("<testsuite name=\"%s\" time=\"%f\" tests=\"%d\" errors=\"0\" skipped=\"0\" failures=\"%d\">\n",
                     this.getClass().getName(),
-                    executionTimeInSeconds.get(executionTimeInSeconds.size() - 1) / 1000.0f,
+                    executionTimeInSeconds.getLast() / 1000.0f,
                     httpJsonFiles.size(),
                     failedTestFiles.size()));
 
@@ -553,9 +542,9 @@ public class HttpJsonDynamicUnitTest {
                     .sorted()
                     .forEachOrdered(filename -> {
                         try {
-                            if (! failedTestFiles.contains(filename)) {
+                            if (!failedTestFiles.contains(filename)) {
                                 writer.write(String.format("    <testcase name=\"%s\" classname=\"%s\" time=\"%f\"/>\n",
-                                        httpJsonAndTestname.get(filename),
+                                        httpJsonAndTestName.get(filename),
                                         this.getClass().getName(),
                                         executionTime.get(filename) / 1000.0f));
                             } else {
@@ -566,13 +555,13 @@ public class HttpJsonDynamicUnitTest {
                                 String found = report.getValue().getValue();
 
                                 writer.write(String.format("    <testcase name=\"%s\" classname=\"%s\" time=\"%f\">\n"
-                                        + "        <failure>\n"
-                                        + "            Step: %s\n"
-                                        + "            Reason: %s\n"
-                                        + "            Expected: %s\n"
-                                        + "            Found: %s\n"
-                                        + "        </failure>\n    </testcase>\n",
-                                        httpJsonAndTestname.get(filename),
+                                                + "        <failure>\n"
+                                                + "            Step: %s\n"
+                                                + "            Reason: %s\n"
+                                                + "            Expected: %s\n"
+                                                + "            Found: %s\n"
+                                                + "        </failure>\n    </testcase>\n",
+                                        httpJsonAndTestName.get(filename),
                                         this.getClass().getName(),
                                         executionTime.get(filename) / 1000.0f,
                                         testStep,
@@ -581,9 +570,9 @@ public class HttpJsonDynamicUnitTest {
                                         found));
                             }
                         } catch (IOException ex) {
-                            System.out.println(String.join("\n", Stream.of(ex.getStackTrace())
-                            .map(trace -> trace.toString())
-                            .collect(toList())));
+                            System.out.println(Stream.of(ex.getStackTrace())
+                                    .map(StackTraceElement::toString)
+                                    .collect(Collectors.joining("\n")));
 
                             throw new Error(ex.toString());
                         }
@@ -591,9 +580,9 @@ public class HttpJsonDynamicUnitTest {
 
             writer.write("</testsuite>\n");
         } catch (IOException ex) {
-            System.out.println(String.join("\n", Stream.of(ex.getStackTrace())
-            .map(trace -> trace.toString())
-            .collect(toList())));
+            System.out.println(Stream.of(ex.getStackTrace())
+                    .map(StackTraceElement::toString)
+                    .collect(Collectors.joining("\n")));
 
             throw new Error(ex.toString());
         }
@@ -612,15 +601,15 @@ public class HttpJsonDynamicUnitTest {
 
         try (BufferedWriter writer = Files.newBufferedWriter(Paths.get("target/customReports/result.txt"))) {
             writer.write(Colors.WHITE_BOLD +
-                " _    _       _ _     _______        _     _____                       _   \n" +
-                "| |  | |     (_) |   |__   __|      | |   |  __ \\                     | |  \n" +
-                "| |  | |_ __  _| |_     | | ___  ___| |_  | |__) |___ _ __   ___  _ __| |_ \n" +
-                "| |  | | '_ \\| | __|    | |/ _ \\/ __| __| |  _  // _ \\ '_ \\ / _ \\| '__| __|\n" +
-                "| |__| | | | | | |_     | |  __/\\__ \\ |_  | | \\ \\  __/ |_) | (_) | |  | |_ \n" +
-                " \\____/|_| |_|_|\\__|    |_|\\___||___/\\__| |_|  \\_\\___| .__/ \\___/|_|   \\__|\n" +
-                "                                                     | |                   \n" +
-                "                                                     |_|                   " +
-                Colors.RESET);
+                    " _    _       _ _     _______        _     _____                       _   \n" +
+                    "| |  | |     (_) |   |__   __|      | |   |  __ \\                     | |  \n" +
+                    "| |  | |_ __  _| |_     | | ___  ___| |_  | |__) |___ _ __   ___  _ __| |_ \n" +
+                    "| |  | | '_ \\| | __|    | |/ _ \\/ __| __| |  _  // _ \\ '_ \\ / _ \\| '__| __|\n" +
+                    "| |__| | | | | | |_     | |  __/\\__ \\ |_  | | \\ \\  __/ |_) | (_) | |  | |_ \n" +
+                    " \\____/|_| |_|_|\\__|    |_|\\___||___/\\__| |_|  \\_\\___| .__/ \\___/|_|   \\__|\n" +
+                    "                                                     | |                   \n" +
+                    "                                                     |_|                   " +
+                    Colors.RESET);
             writer.newLine();
 
             writer.write(ANSI_SUMMARY);
@@ -647,29 +636,29 @@ public class HttpJsonDynamicUnitTest {
                         String reason = report.getKey().getValue();
                         String expected = report.getValue().getKey();
                         String found = report.getValue().getValue();
-                        
-                        errorMessage = String.format("Step: %s\nReason: %s\nExpected: %s\nFound: %s", 
-                            testStep, reason, expected, found);
+
+                        errorMessage = String.format("Step: %s\nReason: %s\nExpected: %s\nFound: %s",
+                                testStep, reason, expected, found);
                     }
-                    
+
                     writer.write(String.format("    <testcase name=\"%s\" classname=\"%s\" time=\"%f\">\n"
-                            + "        <failure>\n            %s\n        </failure>\n    </testcase>\n",
-                            httpJsonAndTestname.get(filename),
+                                    + "        <failure>\n            %s\n        </failure>\n    </testcase>\n",
+                            httpJsonAndTestName.get(filename),
                             this.getClass().getName(),
                             0.0f,
                             errorMessage));
                 } catch (IOException ex) {
-                    System.out.println(String.join("\n", Stream.of(ex.getStackTrace())
-                    .map(trace -> trace.toString())
-                    .collect(toList())));
+                    System.out.println(Stream.of(ex.getStackTrace())
+                            .map(StackTraceElement::toString)
+                            .collect(Collectors.joining("\n")));
 
                     throw new Error(ex.toString());
                 }
             });
         } catch (IOException ex) {
-            System.out.println(String.join("\n", Stream.of(ex.getStackTrace())
-            .map(trace -> trace.toString())
-            .collect(toList())));
+            System.out.println(Stream.of(ex.getStackTrace())
+                    .map(StackTraceElement::toString)
+                    .collect(Collectors.joining("\n")));
 
             throw new Error(ex.toString());
         }
@@ -693,21 +682,21 @@ public class HttpJsonDynamicUnitTest {
                                 String reason = report.getKey().getValue();
                                 String expected = report.getValue().getKey();
                                 String found = report.getValue().getValue();
-                                
-                                errorMessage = String.format("Step: %s\nReason: %s\nExpected: %s\nFound: %s", 
-                                    testStep, reason, expected, found);
+
+                                errorMessage = String.format("Step: %s\nReason: %s\nExpected: %s\nFound: %s",
+                                        testStep, reason, expected, found);
                             }
-                            
+
                             writer.write(String.format("    <testcase name=\"%s\" classname=\"%s\" time=\"%f\">\n"
-                                    + "        <failure>\n            %s\n        </failure>\n    </testcase>\n",
-                                    httpJsonAndTestname.get(filename),
+                                            + "        <failure>\n            %s\n        </failure>\n    </testcase>\n",
+                                    httpJsonAndTestName.get(filename),
                                     this.getClass().getName(),
                                     0.0f,
                                     errorMessage));
                         } catch (IOException ex) {
-                            System.out.println(String.join("\n", Stream.of(ex.getStackTrace())
-                            .map(trace -> trace.toString())
-                            .collect(toList())));
+                            System.out.println(Stream.of(ex.getStackTrace())
+                                    .map(StackTraceElement::toString)
+                                    .collect(Collectors.joining("\n")));
 
                             throw new Error(ex.toString());
                         }
@@ -715,9 +704,9 @@ public class HttpJsonDynamicUnitTest {
 
             writer.write("</testsuite>\n");
         } catch (IOException ex) {
-            System.out.println(String.join("\n", Stream.of(ex.getStackTrace())
-            .map(trace -> trace.toString())
-            .collect(toList())));
+            System.out.println(Stream.of(ex.getStackTrace())
+                    .map(StackTraceElement::toString)
+                    .collect(Collectors.joining("\n")));
 
             throw new Error(ex.toString());
         }
