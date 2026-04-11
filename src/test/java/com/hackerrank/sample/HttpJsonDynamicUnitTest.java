@@ -3,7 +3,6 @@ package com.hackerrank.sample;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import javafx.util.Pair;
 import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -67,7 +66,7 @@ public class HttpJsonDynamicUnitTest {
     List<String> httpJsonFiles = new ArrayList<>();
     Map<String, String> httpJsonAndTestName = new HashMap<>();
     Map<String, Long> executionTime = new HashMap<>();
-    Map<String, Pair<Pair<String, String>, Pair<String, String>>> testFailures = new HashMap<>();
+    Map<String, TestFailureReport> testFailures = new HashMap<>();
 
     @RegisterExtension
     TestWatcher reportWatcher = new TestWatcher() {
@@ -315,7 +314,7 @@ public class HttpJsonDynamicUnitTest {
     private boolean validateStatusCode(String filename, String testcase, String expected, String found) {
         if (!expected.equals(found)) {
             String reason = "Status code";
-            addTestFailure(filename, new Pair(new Pair(testcase, reason), new Pair(expected, found)));
+            addTestFailure(filename, new TestFailureReport(testcase, reason, expected, found));
 
             return false;
         }
@@ -326,7 +325,7 @@ public class HttpJsonDynamicUnitTest {
     private boolean validateContentType(String filename, String testcase, String expected, String found) {
         if (!found.startsWith(expected)) {
             String reason = "Content type";
-            addTestFailure(filename, new Pair(new Pair(testcase, reason), new Pair(expected, found)));
+            addTestFailure(filename, new TestFailureReport(testcase, reason, expected, found));
 
             return false;
         }
@@ -337,7 +336,7 @@ public class HttpJsonDynamicUnitTest {
     private boolean validateTextResponse(String filename, String testcase, String expected, String found) {
         if (!expected.equals(found)) {
             String reason = "Response text does not match with the expected response";
-            addTestFailure(filename, new Pair(new Pair(testcase, reason), new Pair(expected, found)));
+            addTestFailure(filename, new TestFailureReport(testcase, reason, expected, found));
 
             return false;
         }
@@ -357,9 +356,9 @@ public class HttpJsonDynamicUnitTest {
 
             if (expectedResponseJsonList.size() != responseBodyJsonList.size()) {
                 String reason = "Response Json array size does not match with the expected array size";
-                addTestFailure(filename, new Pair(new Pair(testcase, reason),
-                        new Pair(String.valueOf(expectedResponseJsonList.size()),
-                                String.valueOf(responseBodyJsonList.size()))));
+                addTestFailure(filename, new TestFailureReport(testcase, reason,
+                        String.valueOf(expectedResponseJsonList.size()),
+                        String.valueOf(responseBodyJsonList.size())));
 
                 return false;
             } else {
@@ -369,8 +368,8 @@ public class HttpJsonDynamicUnitTest {
 
                     if (!expectedJson.equals(foundJson)) {
                         String reason = String.format("Response Json (at index %d) does not match with the expected Json", i);
-                        addTestFailure(filename, new Pair(new Pair(testcase, reason), new Pair(expectedJson.toString(),
-                                foundJson.toString())));
+                        addTestFailure(filename, new TestFailureReport(testcase, reason, expectedJson.toString(),
+                                foundJson.toString()));
 
                         return false;
                     }
@@ -379,8 +378,8 @@ public class HttpJsonDynamicUnitTest {
         } catch (IOException ex) {
             if (!expected.equals(found)) {
                 String reason = "Response Json does not match with the expected Json";
-                addTestFailure(filename, new Pair(new Pair(testcase, reason), new Pair(expected.toString(),
-                        found.toString())));
+                addTestFailure(filename, new TestFailureReport(testcase, reason, expected.toString(),
+                        found.toString()));
 
                 return false;
             }
@@ -389,7 +388,7 @@ public class HttpJsonDynamicUnitTest {
         return true;
     }
 
-    private void addTestFailure(String filename, Pair<Pair<String, String>, Pair<String, String>> failure) {
+    private void addTestFailure(String filename, TestFailureReport failure) {
         if (testFailures.containsKey(filename)) {
             throw new Error("I should skip rest of the test cases.");
         }
@@ -491,12 +490,12 @@ public class HttpJsonDynamicUnitTest {
                 failedTestFiles.stream()
                         .sorted()
                         .forEachOrdered(filename -> {
-                            Pair<Pair<String, String>, Pair<String, String>> report = testFailures.get(filename);
+                            TestFailureReport report = testFailures.get(filename);
 
-                            String testStep = report.getKey().getKey();
-                            String reason = report.getKey().getValue();
-                            String expected = report.getValue().getKey();
-                            String found = report.getValue().getValue();
+                            String testStep = report.testStep();
+                            String reason = report.reason();
+                            String expected = report.expected();
+                            String found = report.found();
 
                             fileFailureReason.put(filename, reason);
 
@@ -548,11 +547,11 @@ public class HttpJsonDynamicUnitTest {
                                         this.getClass().getName(),
                                         executionTime.get(filename) / 1000.0f));
                             } else {
-                                Pair<Pair<String, String>, Pair<String, String>> report = testFailures.get(filename);
-                                String testStep = report.getKey().getKey();
-                                String reason = report.getKey().getValue();
-                                String expected = report.getValue().getKey();
-                                String found = report.getValue().getValue();
+                                TestFailureReport report = testFailures.get(filename);
+                                String testStep = report.testStep();
+                                String reason = report.reason();
+                                String expected = report.expected();
+                                String found = report.found();
 
                                 writer.write(String.format("    <testcase name=\"%s\" classname=\"%s\" time=\"%f\">\n"
                                                 + "        <failure>\n"
@@ -631,11 +630,11 @@ public class HttpJsonDynamicUnitTest {
                 try {
                     String errorMessage = "Runtime Error";
                     if (testFailures.containsKey(filename)) {
-                        Pair<Pair<String, String>, Pair<String, String>> report = testFailures.get(filename);
-                        String testStep = report.getKey().getKey();
-                        String reason = report.getKey().getValue();
-                        String expected = report.getValue().getKey();
-                        String found = report.getValue().getValue();
+                        TestFailureReport report = testFailures.get(filename);
+                        String testStep = report.testStep();
+                        String reason = report.reason();
+                        String expected = report.expected();
+                        String found = report.found();
 
                         errorMessage = String.format("Step: %s\nReason: %s\nExpected: %s\nFound: %s",
                                 testStep, reason, expected, found);
@@ -677,11 +676,11 @@ public class HttpJsonDynamicUnitTest {
                         try {
                             String errorMessage = "Runtime Error";
                             if (testFailures.containsKey(filename)) {
-                                Pair<Pair<String, String>, Pair<String, String>> report = testFailures.get(filename);
-                                String testStep = report.getKey().getKey();
-                                String reason = report.getKey().getValue();
-                                String expected = report.getValue().getKey();
-                                String found = report.getValue().getValue();
+                                TestFailureReport report = testFailures.get(filename);
+                                String testStep = report.testStep();
+                                String reason = report.reason();
+                                String expected = report.expected();
+                                String found = report.found();
 
                                 errorMessage = String.format("Step: %s\nReason: %s\nExpected: %s\nFound: %s",
                                         testStep, reason, expected, found);
@@ -711,6 +710,8 @@ public class HttpJsonDynamicUnitTest {
             throw new Error(ex.toString());
         }
     }
+
+    private record TestFailureReport(String testStep, String reason, String expected, String found) {}
 
     private static class Colors {
         public static final String RESET = "\033[0m";

@@ -1,6 +1,7 @@
 package com.hackerrank.sample.service;
 
 import com.hackerrank.sample.dto.ProductResponse;
+import com.hackerrank.sample.exception.BadResourceRequestException;
 import com.hackerrank.sample.exception.NoSuchResourceFoundException;
 import com.hackerrank.sample.model.Product;
 import com.hackerrank.sample.repository.ProductRepository;
@@ -49,7 +50,7 @@ public class ProductServiceImpl implements ProductService {
     public List<ProductResponse> compareProducts(List<Long> ids) {
 
         if (ids == null || ids.isEmpty()) {
-            throw new IllegalArgumentException("ids must not be null or empty");
+            throw new BadResourceRequestException("ids must not be null or empty");
         }
 
         List<Long> distinctIds = ids.stream().distinct().toList();

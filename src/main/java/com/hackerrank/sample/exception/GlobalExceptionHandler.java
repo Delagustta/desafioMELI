@@ -2,17 +2,18 @@ package com.hackerrank.sample.exception;
 
 import com.hackerrank.sample.dto.ApiErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.validation.FieldError;
-import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
-
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.validation.ObjectError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @Slf4j
 @RestControllerAdvice
@@ -43,23 +44,13 @@ public class GlobalExceptionHandler {
             MethodArgumentNotValidException ex,
             HttpServletRequest request
     ) {
-        List<String> details = ex.getBindingResult()
-                .getFieldErrors()
-                .stream()
-                .map(this::formatFieldError)
-                .toList();
+        List<String> details = Stream.concat(
+                ex.getBindingResult().getFieldErrors().stream().map(this::formatFieldError),
+                ex.getBindingResult().getGlobalErrors().stream().map(this::formatGlobalError)
+        ).toList();
 
-        log.warn("Validation failed {} {} fieldErrorCount={}", request.getMethod(), request.getRequestURI(), details.size());
+        log.warn("Validation failed {} {} detailCount={}", request.getMethod(), request.getRequestURI(), details.size());
         return buildErrorResponse(HttpStatus.BAD_REQUEST, "Request validation failed.", request, details);
-    }
-
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ApiErrorResponse> handleIllegalArgument(
-            IllegalArgumentException ex,
-            HttpServletRequest request
-    ) {
-        log.warn("Bad request {} {}: {}", request.getMethod(), request.getRequestURI(), ex.getMessage());
-        return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request, List.of());
     }
 
     @ExceptionHandler(Exception.class)
@@ -99,5 +90,12 @@ public class GlobalExceptionHandler {
                 ? "invalid value"
                 : fieldError.getDefaultMessage();
         return fieldError.getField() + ": " + defaultMessage;
+    }
+
+    private String formatGlobalError(ObjectError error) {
+        String defaultMessage = error.getDefaultMessage() == null
+                ? "invalid value"
+                : error.getDefaultMessage();
+        return error.getObjectName() + ": " + defaultMessage;
     }
 }

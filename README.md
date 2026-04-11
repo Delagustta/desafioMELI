@@ -63,6 +63,7 @@ H2 console:
 
 Important:
 
+- The H2 console is enabled in `application.yml` **for local development only**; in a real deployment it should be turned off or protected.
 - H2 Console may open with a different default JDBC URL.
 - Use `jdbc:h2:mem:item-comparison-db` in the JDBC URL field to connect to this project database.
 
@@ -133,7 +134,7 @@ Mapped scenarios:
 
 - business bad request -> `400`
 - missing resource -> `404`
-- validation errors -> `400`
+- validation errors -> `400` (`details` lists both field-level errors, e.g. `ids: …`, and class-level / global constraint messages when present)
 - unexpected errors -> `500`
 
 ## Legacy Contract for Dynamic Tests

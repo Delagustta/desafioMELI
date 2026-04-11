@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.hackerrank.sample.dto.ProductResponse;
+import com.hackerrank.sample.exception.BadResourceRequestException;
 import com.hackerrank.sample.exception.NoSuchResourceFoundException;
 import com.hackerrank.sample.model.Product;
 import com.hackerrank.sample.repository.ProductRepository;
@@ -98,14 +99,14 @@ class ProductServiceImplTest {
         @Test
         void throwsWhenIdsNull() {
             assertThatThrownBy(() -> productService.compareProducts(null))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(BadResourceRequestException.class)
                     .hasMessageContaining("null or empty");
         }
 
         @Test
         void throwsWhenIdsEmpty() {
             assertThatThrownBy(() -> productService.compareProducts(List.of()))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(BadResourceRequestException.class)
                     .hasMessageContaining("null or empty");
         }
 
