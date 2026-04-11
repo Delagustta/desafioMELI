@@ -121,7 +121,7 @@ Behavior:
 
 Errors are centralized in `GlobalExceptionHandler` with standardized response payload:
 
-- `timestamp`
+- `timestamp` (America/Sao_Paulo, second precision, no milliseconds in JSON)
 - `status`
 - `error`
 - `message`

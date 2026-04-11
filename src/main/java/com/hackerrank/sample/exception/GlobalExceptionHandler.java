@@ -9,13 +9,16 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final ZoneId ERROR_TIMESTAMP_ZONE = ZoneId.of("America/Sao_Paulo");
 
     @ExceptionHandler(BadResourceRequestException.class)
     public ResponseEntity<ApiErrorResponse> handleBadRequest(
@@ -71,7 +74,7 @@ public class GlobalExceptionHandler {
             List<String> details
     ) {
         ApiErrorResponse response = new ApiErrorResponse(
-                Instant.now(),
+                ZonedDateTime.now(ERROR_TIMESTAMP_ZONE),
                 status.value(),
                 status.getReasonPhrase(),
                 message,
