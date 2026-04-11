@@ -63,10 +63,15 @@ public class ProductController {
 
     @PostMapping(value = "/products/compare", consumes = "application/json")
     @ResponseStatus(HttpStatus.OK)
-    @Operation(summary = "Compare multiple products by ids")
+    @Operation(
+            summary = "Compare multiple products by ids",
+            description = "Returns one entry per requested id, in the same order as `ids`. "
+                    + "If an id appears more than once, the same product is returned for each occurrence "
+                    + "(request order and duplicates are preserved)."
+    )
     @ApiResponse(
             responseCode = "200",
-            description = "Products returned in the same input order",
+            description = "Products returned: same length, order, and duplicate ids as in the request body",
             content = @Content(array = @ArraySchema(schema = @Schema(implementation = ProductResponse.class)))
     )
     @ApiResponse(

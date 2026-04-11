@@ -114,6 +114,7 @@ Request body:
 Behavior:
 
 - Returns products in the same order as requested ids.
+- The response has the same length as `ids`: if an id is repeated in the request, the same product appears multiple times (order and duplicates are preserved).
 - `400` for invalid payload (for example empty ids).
 - `404` if at least one requested id does not exist.
 
