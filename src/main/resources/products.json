@@ -40,5 +40,47 @@
       "batteryLife": "35 hours",
       "noiseCanceling": "Active"
     }
+  },
+  {
+    "id": 104,
+    "name": "Tablet Air 11",
+    "imageUrl": "https://images.example.com/tablet-air-11.jpg",
+    "description": "11-inch tablet for reading, streaming, and light work on the go.",
+    "price": 1899.00,
+    "rating": 4.4,
+    "specifications": {
+      "screen": "11 inch LCD",
+      "storage": "128 GB",
+      "battery": "8000 mAh",
+      "stylus": "Supported"
+    }
+  },
+  {
+    "id": 105,
+    "name": "Smartwatch Pulse",
+    "imageUrl": "https://images.example.com/smartwatch-pulse.jpg",
+    "description": "Fitness-focused smartwatch with heart rate and GPS.",
+    "price": 649.90,
+    "rating": 4.3,
+    "specifications": {
+      "display": "1.4 inch AMOLED",
+      "waterResistance": "5 ATM",
+      "gps": "Dual-band",
+      "batteryLife": "14 days"
+    }
+  },
+  {
+    "id": 106,
+    "name": "Monitor UltraWide 34",
+    "imageUrl": "https://images.example.com/monitor-ultrawide-34.jpg",
+    "description": "34-inch curved ultrawide monitor for productivity and gaming.",
+    "price": 3299.00,
+    "rating": 4.8,
+    "specifications": {
+      "screen": "34 inch VA curved",
+      "resolution": "3440x1440",
+      "refreshRate": "144 Hz",
+      "ports": "HDMI 2.1, DisplayPort 1.4"
+    }
   }
 ]
