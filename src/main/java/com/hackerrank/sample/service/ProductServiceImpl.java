@@ -4,12 +4,15 @@ import com.hackerrank.sample.dto.ProductResponse;
 import com.hackerrank.sample.exception.NoSuchResourceFoundException;
 import com.hackerrank.sample.model.Product;
 import com.hackerrank.sample.repository.ProductRepository;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -19,11 +22,16 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public List<ProductResponse> getAllProducts() {
-        List<ProductResponse> list = productRepository.findAll().stream()
+        List<Product> products = productRepository.findAll();
+
+        if (products.isEmpty()) {
+            log.warn("Product catalog is empty");
+            return List.of();
+        }
+
+        return products.stream()
                 .map(this::toResponse)
                 .toList();
-        log.debug("Listed products count={}", list.size());
-        return list;
     }
 
     @Override
@@ -39,17 +47,26 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public List<ProductResponse> compareProducts(List<Long> ids) {
-        log.debug("Compare products requested idCount={}", ids.size());
-        Map<Long, Product> foundById = productRepository.findAllById(ids).stream()
-                .collect(LinkedHashMap::new, (map, product) -> map.put(product.getId(), product), Map::putAll);
+
+        if (ids == null || ids.isEmpty()) {
+            throw new IllegalArgumentException("ids must not be null or empty");
+        }
+
+        Map<Long, Product> foundById = productRepository.findAllById(ids)
+                .stream()
+                .collect(Collectors.toMap(
+                        Product::getId,
+                        Function.identity()
+                ));
 
         if (foundById.size() != ids.size()) {
-            log.debug(
-                    "Compare rejected: requested idCount={} foundCount={}",
-                    ids.size(),
-                    foundById.size()
-            );
-            throw new NoSuchResourceFoundException("At least one requested product was not found.");
+            List<Long> missingIds = ids.stream()
+                    .filter(id -> !foundById.containsKey(id))
+                    .toList();
+
+            log.debug("Compare rejected: missingIds={}", missingIds);
+
+            throw new NoSuchResourceFoundException("Some products were not found: " + missingIds);
         }
 
         return ids.stream()
@@ -59,6 +76,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     private ProductResponse toResponse(Product product) {
+        Objects.requireNonNull(product, "product must not be null");
         return new ProductResponse(
                 product.getId(),
                 product.getName(),
