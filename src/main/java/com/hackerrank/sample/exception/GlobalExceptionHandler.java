@@ -2,8 +2,6 @@ package com.hackerrank.sample.exception;
 
 import com.hackerrank.sample.dto.ApiErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
-import java.time.Instant;
-import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -11,6 +9,11 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.time.Instant;
+import java.util.List;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -19,6 +22,7 @@ public class GlobalExceptionHandler {
             BadResourceRequestException ex,
             HttpServletRequest request
     ) {
+        log.warn("Bad request {}: {}", request.getMethod(), request.getRequestURI());
         return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request, List.of());
     }
 
@@ -27,6 +31,7 @@ public class GlobalExceptionHandler {
             NoSuchResourceFoundException ex,
             HttpServletRequest request
     ) {
+        log.debug("Not found {} {}: {}", request.getMethod(), request.getRequestURI(), ex.getMessage());
         return buildErrorResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request, List.of());
     }
 
@@ -41,6 +46,7 @@ public class GlobalExceptionHandler {
                 .map(this::formatFieldError)
                 .toList();
 
+        log.warn("Validation failed {} {} fieldErrorCount={}", request.getMethod(), request.getRequestURI(), details.size());
         return buildErrorResponse(HttpStatus.BAD_REQUEST, "Request validation failed.", request, details);
     }
 
@@ -49,6 +55,7 @@ public class GlobalExceptionHandler {
             Exception ex,
             HttpServletRequest request
     ) {
+        log.error("Unexpected error {} {}", request.getMethod(), request.getRequestURI(), ex);
         return buildErrorResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "An unexpected error occurred.",

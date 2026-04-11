@@ -15,3 +15,7 @@ spring:
 app:
   seed:
     products-file: products.json
+
+logging:
+  level:
+    com.hackerrank.sample: INFO

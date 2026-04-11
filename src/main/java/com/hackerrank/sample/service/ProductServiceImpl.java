@@ -8,8 +8,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ProductServiceImpl implements ProductService {
@@ -17,25 +19,36 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public List<ProductResponse> getAllProducts() {
-        return productRepository.findAll().stream()
+        List<ProductResponse> list = productRepository.findAll().stream()
                 .map(this::toResponse)
                 .toList();
+        log.debug("Listed products count={}", list.size());
+        return list;
     }
 
     @Override
     public ProductResponse getProductById(Long id) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new NoSuchResourceFoundException("Product with given id not found."));
+                .orElseThrow(() -> {
+                    log.debug("Product not found id={}", id);
+                    return new NoSuchResourceFoundException("Product with given id not found.");
+                });
 
         return toResponse(product);
     }
 
     @Override
     public List<ProductResponse> compareProducts(List<Long> ids) {
+        log.debug("Compare products requested idCount={}", ids.size());
         Map<Long, Product> foundById = productRepository.findAllById(ids).stream()
                 .collect(LinkedHashMap::new, (map, product) -> map.put(product.getId(), product), Map::putAll);
 
         if (foundById.size() != ids.size()) {
+            log.debug(
+                    "Compare rejected: requested idCount={} foundCount={}",
+                    ids.size(),
+                    foundById.size()
+            );
             throw new NoSuchResourceFoundException("At least one requested product was not found.");
         }
 

@@ -41,7 +41,7 @@ public class Product {
     @Column(nullable = false)
     private Double rating;
 
-    // Para o desafio utilizei Map<String, String> pela simplicidade e flexibilidade. Em um cenário real, evoluiria para uso de atributos tipados ou uso de JSON indexado, permitindo buscas eficientes, validação de dados etc.
+    // Para o desafio utilizei Map<String, String> pela simplicidade e flexibilidade. Em um cenário real, evoluiria para uso de atributos tipados ou uso de JSONB indexado, permitindo buscas eficientes, validação de dados etc.
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "product_specifications", joinColumns = @JoinColumn(name = "product_id"))
     @MapKeyColumn(name = "spec_key")
